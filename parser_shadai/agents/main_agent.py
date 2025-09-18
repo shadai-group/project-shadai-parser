@@ -7,11 +7,11 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-from llm_providers.base import BaseLLMProvider
-from .document_agent import DocumentAgent, ProcessingConfig
-from .image_agent import ImageAgent, ImageProcessingConfig
-from .metadata_schemas import DocumentType
-from .utils_files import pdf_extensions, image_extensions, pdf_patterns, image_patterns
+from parser_shadai.llm_providers.base import BaseLLMProvider
+from parser_shadai.agents.document_agent import DocumentAgent, ProcessingConfig
+from parser_shadai.agents.image_agent import ImageAgent, ImageProcessingConfig
+from parser_shadai.agents.metadata_schemas import DocumentType
+from parser_shadai.agents.utils_files import pdf_extensions, image_extensions, pdf_patterns, image_patterns
 
 
 @dataclass

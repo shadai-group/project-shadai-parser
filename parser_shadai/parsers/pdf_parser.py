@@ -9,7 +9,7 @@ from PIL import Image
 import io
 import base64
 
-from llm_providers.base import BaseLLMProvider, LLMResponse
+from parser_shadai.llm_providers.base import BaseLLMProvider, LLMResponse
 
 
 class PDFParser:

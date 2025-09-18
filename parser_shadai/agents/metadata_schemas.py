@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
 from enum import Enum
 import json
-from .language_config import get_language_prompt
+from parser_shadai.agents.language_config import get_language_prompt
 
 
 class DocumentType(Enum):

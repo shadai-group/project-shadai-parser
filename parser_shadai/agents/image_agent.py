@@ -10,10 +10,10 @@ from PIL import Image
 from parser_shadai.agents.image_categories import get_all_categories
 from parser_shadai.agents.language_detector import LanguageDetector
 
-from llm_providers.base import BaseLLMProvider
+from parser_shadai.llm_providers.base import BaseLLMProvider
 from parsers.image_parser import ImageParser
-from .metadata_schemas import DocumentType
-from .language_config import get_language_prompt
+from parser_shadai.agents.metadata_schemas import DocumentType
+from parser_shadai.agents.language_config import get_language_prompt
 
 
 @dataclass

@@ -3,7 +3,7 @@ Predefined image categories for classification.
 """
 
 from enum import Enum
-from typing import List, Dict
+from typing import List
 
 class ImageCategory(Enum):
     """Enumeration of image categories for classification."""

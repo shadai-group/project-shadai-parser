@@ -3,7 +3,7 @@ Language detection utilities for document processing.
 """
 
 import re
-from .language_config import get_supported_languages, Language
+from parser_shadai.agents.language_config import get_supported_languages, Language
 
 class LanguageDetector:
     """Utility class for detecting document language."""

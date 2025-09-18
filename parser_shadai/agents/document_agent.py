@@ -6,10 +6,10 @@ from typing import List, Dict, Any, Optional, Union
 import os
 from dataclasses import dataclass
 
-from llm_providers.base import BaseLLMProvider
+from parser_shadai.llm_providers.base import BaseLLMProvider
 from parsers.pdf_parser import PDFParser
-from .metadata_schemas import DocumentType, ChunkNode, ChunkProcessor
-from .text_chunker import TextChunker, ChunkConfig, SmartChunker
+from parser_shadai.agents.metadata_schemas import DocumentType, ChunkNode, ChunkProcessor
+from parser_shadai.agents.text_chunker import TextChunker, ChunkConfig, SmartChunker
 from parser_shadai.agents.language_detector import LanguageDetector
 
 

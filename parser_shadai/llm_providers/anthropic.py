@@ -8,7 +8,7 @@ from PIL import Image
 import base64
 from io import BytesIO
 
-from .base import BaseLLMProvider, LLMResponse, Message, MessageRole
+from parser_shadai.llm_providers.base import BaseLLMProvider, LLMResponse, Message, MessageRole
 
 
 class AnthropicProvider(BaseLLMProvider):
