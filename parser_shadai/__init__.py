@@ -13,8 +13,8 @@ from .llm_client import LLMClient
 # Import agents
 from .agents.document_agent import DocumentAgent
 from .agents.image_agent import ImageAgent
-from .agents.main_agent import MainProcessingAgent
-from .agents.metadata_schemas import DocumentType, MetadataSchema, ChunkNode
+from .agents.main_agent import MainProcessingAgent, AgentConfig
+from .agents.metadata_schemas import MetadataSchema, ChunkNode
 from .agents.text_chunker import TextChunker, SmartChunker
 
 __version__ = "0.1.0"
@@ -36,6 +36,7 @@ __all__ = [
     "DocumentAgent",
     "ImageAgent", 
     "MainProcessingAgent",
+    "AgentConfig",
     
     # Schemas and types
     "DocumentType",
