@@ -135,7 +135,7 @@ class MainProcessingAgent:
             print("Extracting and processing images from PDF...")
             try:
                 # Extract images from PDF
-                from parsers.pdf_parser import PDFParser
+                from parser_shadai.parsers.pdf_parser import PDFParser
                 pdf_parser = PDFParser(self.llm_provider)
                 images = pdf_parser.extract_images(file_path)
                 
