@@ -11,10 +11,30 @@ A powerful Python package for parsing PDFs and images using various Large Langua
 - **Language Detection**: Automatic language detection with LLM support
 - **Structured Metadata**: Document-type specific metadata extraction
 
+## Required Poppler
+
+If You're on Ubuntu:
+
+```bash
+sudo apt-get install -y poppler-utils
+```
+
+If You're on macOS:
+
+```bash
+brew install poppler
+```
+
+If You're on Windows:
+
+```bash
+choco install poppler
+```
+
 ## Installation
 
 ```bash
-pip install parser-shadai
+pip install git+git@github.com:shadai-group/project-shadai-parser.git
 ```
 
 ## Quick Start
