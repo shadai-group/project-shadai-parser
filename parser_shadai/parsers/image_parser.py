@@ -7,7 +7,7 @@ from PIL import Image, ImageOps
 import base64
 import io
 
-from parser_shadai.llm_providers.base import BaseLLMProvider, LLMResponse
+from llm_providers.base import BaseLLMProvider, LLMResponse
 
 
 class ImageParser:
