@@ -7,7 +7,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..llm_providers.base import BaseLLMProvider
+from llm_providers.base import BaseLLMProvider
 from .document_agent import DocumentAgent, ProcessingConfig
 from .image_agent import ImageAgent, ImageProcessingConfig
 from .metadata_schemas import DocumentType
@@ -135,7 +135,7 @@ class MainProcessingAgent:
             print("Extracting and processing images from PDF...")
             try:
                 # Extract images from PDF
-                from ..parsers.pdf_parser import PDFParser
+                from parsers.pdf_parser import PDFParser
                 pdf_parser = PDFParser(self.llm_provider)
                 images = pdf_parser.extract_images(file_path)
                 
