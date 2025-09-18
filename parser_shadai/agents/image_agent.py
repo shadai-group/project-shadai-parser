@@ -11,7 +11,7 @@ from parser_shadai.agents.image_categories import get_all_categories
 from parser_shadai.agents.language_detector import LanguageDetector
 
 from parser_shadai.llm_providers.base import BaseLLMProvider
-from parsers.image_parser import ImageParser
+from parser_shadai.parsers.image_parser import ImageParser
 from parser_shadai.agents.metadata_schemas import DocumentType
 from parser_shadai.agents.language_config import get_language_prompt
 
