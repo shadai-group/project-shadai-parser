@@ -10,7 +10,6 @@ A powerful Python package for parsing PDFs and images using various Large Langua
 - **Intelligent Chunking**: Smart text chunking with context preservation
 - **Language Detection**: Automatic language detection with LLM support
 - **Structured Metadata**: Document-type specific metadata extraction
-- **Vector Search**: ChromaDB integration for similarity search
 
 ## Installation
 
