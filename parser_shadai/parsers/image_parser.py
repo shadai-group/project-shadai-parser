@@ -6,9 +6,8 @@ from typing import List, Dict, Any, Optional, Union
 from PIL import Image, ImageOps
 import base64
 import io
-import os
 
-from ..llm_providers.base import BaseLLMProvider, LLMResponse
+from parser_shadai.llm_providers.base import BaseLLMProvider, LLMResponse
 
 
 class ImageParser:
