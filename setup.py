@@ -27,7 +27,7 @@ setup(
     ],
     python_requires=">=3.10",
     install_requires=[
-        "google-generativeai>=0.8.5",
+        "google-generativeai<=0.8.5",
         "anthropic>=0.68.0",
         "openai>=1.109.1",
         "PyPDF2>=3.0.1",
