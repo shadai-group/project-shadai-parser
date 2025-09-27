@@ -5,8 +5,10 @@ Predefined image categories for classification.
 from enum import Enum
 from typing import List
 
+
 class ImageCategory(Enum):
     """Enumeration of image categories for classification."""
+
     TEXT = "text"
     IMAGE = "image"
     TABLE = "table"
@@ -30,7 +32,7 @@ class ImageCategory(Enum):
 def get_all_categories() -> List[str]:
     """
     Get all available image categories.
-    
+
     Returns:
         List of all image categories
     """

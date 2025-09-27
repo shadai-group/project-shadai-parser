@@ -21,29 +21,24 @@ __version__ = "0.1.0"
 __all__ = [
     # Core LLM providers
     "BaseLLMProvider",
-    "GeminiProvider", 
+    "GeminiProvider",
     "AnthropicProvider",
     "OpenAIProvider",
-    
     # Parsers
     "PDFParser",
     "ImageParser",
-    
     # Main client
     "LLMClient",
-    
     # Agents
     "DocumentAgent",
-    "ImageAgent", 
+    "ImageAgent",
     "MainProcessingAgent",
     "AgentConfig",
-    
     # Schemas and types
     "DocumentType",
     "MetadataSchema",
     "ChunkNode",
-    
     # Utilities
     "TextChunker",
-    "SmartChunker"
+    "SmartChunker",
 ]

@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "parser-shadai"
+version = "0.1.0"
+description = "A Python package for parsing PDFs and images using various LLM providers"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Shadai", email = "angie@shadai.ai"}
+]
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "google-genai==1.38.0",
+    "anthropic>=0.68.0",
+    "openai>=1.109.1",
+    "PyPDF2>=3.0.1",
+    "pdf2image>=1.17.0",
+    "Pillow>=11.3.0",
+    "python-dotenv>=1.1.1",
+    "requests>=2.32.5",
+    "load-dotenv==0.1.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=22.0.0",
+    "flake8>=5.0.0",
+    "mypy>=1.0.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/shadai-ai/parser-shadai"
+
+[tool.setuptools.packages.find]
+where = ["."]

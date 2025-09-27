@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -27,7 +27,7 @@ setup(
     ],
     python_requires=">=3.10",
     install_requires=[
-        "google-ai-generativelanguage>=0.7.0,<1.0.0",
+        "google-genai==1.38.0",
         "anthropic>=0.68.0",
         "openai>=1.109.1",
         "PyPDF2>=3.0.1",
