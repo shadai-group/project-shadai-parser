@@ -2,19 +2,19 @@
 Document processing agent for PDFs and text documents.
 """
 
-from typing import List, Dict, Any, Optional
 import os
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
-from parser_shadai.llm_providers.base import BaseLLMProvider
-from parser_shadai.parsers.pdf_parser import PDFParser
+from parser_shadai.agents.language_detector import LanguageDetector
 from parser_shadai.agents.metadata_schemas import (
-    DocumentType,
     ChunkNode,
     ChunkProcessor,
+    DocumentType,
 )
-from parser_shadai.agents.text_chunker import TextChunker, ChunkConfig, SmartChunker
-from parser_shadai.agents.language_detector import LanguageDetector
+from parser_shadai.agents.text_chunker import ChunkConfig, SmartChunker, TextChunker
+from parser_shadai.llm_providers.base import BaseLLMProvider
+from parser_shadai.parsers.pdf_parser import PDFParser
 
 
 @dataclass
@@ -75,11 +75,9 @@ class DocumentAgent:
             self.language, usage = self.language_detector.detect_language_with_llm(
                 text, self.llm_provider
             )
-            print(f"Language: {self.language}")
             return usage
         else:
             self.language = self.config.language
-            print(f"Language: {self.language}")
             return None
 
     def process_document(
@@ -104,7 +102,6 @@ class DocumentAgent:
 
         try:
             # Step 1: Extract text and basic metadata from PDF
-            print("Step 1: Extracting text and metadata from PDF...")
             pdf_text = self.pdf_parser.extract_text(document_path)
             pdf_metadata = self.pdf_parser.extract_metadata(document_path)
             page_count = self.pdf_parser.get_page_count(document_path)
@@ -121,11 +118,9 @@ class DocumentAgent:
 
             # Step 2: Determine document type if auto-detection is enabled
             if auto_detect_type:
-                print("Step 2: Detecting document type...")
                 document_type, type_detection_usage = self._detect_document_type(
                     pdf_text, pdf_metadata
                 )
-                print(f"Detected document type: {document_type.value}")
                 if type_detection_usage:
                     total_usage["prompt_tokens"] += type_detection_usage.get(
                         "prompt_tokens", 0
@@ -133,16 +128,11 @@ class DocumentAgent:
                     total_usage["completion_tokens"] += type_detection_usage.get(
                         "completion_tokens", 0
                     )
-            else:
-                print(f"Using specified document type: {document_type.value}")
 
             # Step 3: Chunk the text
-            print("Step 3: Chunking text...")
             chunks_data = self._chunk_document_text(pdf_text, page_count)
-            print(f"Created {len(chunks_data)} chunks")
 
             # Step 4: Extract metadata for each chunk
-            print("Step 4: Extracting metadata for each chunk...")
             chunk_nodes, chunk_usage = self._extract_chunk_metadata(
                 chunks_data, document_type
             )
@@ -150,7 +140,6 @@ class DocumentAgent:
             total_usage["completion_tokens"] += chunk_usage.get("completion_tokens", 0)
 
             # Step 5: Compile results
-            print("Step 5: Compiling results...")
             results = self._compile_results(
                 document_path, pdf_metadata, chunk_nodes, document_type
             )
@@ -158,7 +147,6 @@ class DocumentAgent:
             # Add usage information to results
             results["usage"] = total_usage
 
-            print("Document processing completed successfully!")
             return results
 
         except Exception as e:
@@ -255,8 +243,6 @@ Return only the document type (e.g., "legal", "medical", etc.) based on the cont
         total_usage = {"prompt_tokens": 0, "completion_tokens": 0}
 
         for i, chunk_data in enumerate(chunks_data):
-            print(f"Processing chunk {i + 1}/{len(chunks_data)}...")
-
             try:
                 chunk_node, chunk_usage = chunk_processor.extract_metadata(
                     chunk=chunk_data["content"],
@@ -390,26 +376,19 @@ Return only the document type (e.g., "legal", "medical", etc.) based on the cont
         try:
             # Step 1: Detect document type if needed
             if auto_detect_type:
-                print("Detecting document type...")
                 document_type = self._detect_document_type(text, {})
-                print(f"Detected document type: {document_type.value}")
 
             # Step 2: Chunk the text
-            print("Chunking text...")
             chunks_data = self._chunk_document_text(text, 1)
-            print(f"Created {len(chunks_data)} chunks")
 
             # Step 3: Extract metadata for each chunk
-            print("Extracting metadata for each chunk...")
             chunk_nodes = self._extract_chunk_metadata(chunks_data, document_type)
 
             # Step 4: Compile results
-            print("Compiling results...")
             results = self._compile_results(
                 "text_document", {"page_count": 1}, chunk_nodes, document_type
             )
 
-            print("Text document processing completed successfully!")
             return results
 
         except Exception as e:

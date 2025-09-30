@@ -135,7 +135,6 @@ class MainProcessingAgent:
         self, file_path: str, document_type: DocumentType, auto_detect_type: bool
     ) -> Dict[str, Any]:
         """Process a PDF file."""
-        print("Processing PDF document...")
 
         # Process the PDF document
         doc_results = self.document_agent.process_document(
@@ -150,10 +149,8 @@ class MainProcessingAgent:
                 "completion_tokens", 0
             )
 
-        print("CONFIG EXTRACT IMAGES: ", self.config)
         # If PDF contains images and we want to process them
         if self.config.extract_images is True:
-            print("Extracting and processing images from PDF...")
             try:
                 # Extract images from PDF
                 from parser_shadai.parsers.pdf_parser import PDFParser
@@ -162,8 +159,6 @@ class MainProcessingAgent:
                 images = pdf_parser.extract_images(file_path)
 
                 if images:
-                    print(f"Found {len(images)} images in PDF")
-
                     # Process each image with safeguards
                     image_results = []
                     max_consecutive_failures = 5  # Stop after 5 consecutive failures
@@ -177,7 +172,6 @@ class MainProcessingAgent:
                             )
                             break
 
-                        print(f"Processing image {i + 1}/{len(images)} from PDF...")
                         temp_path = f"temp_pdf_image_{i}.png"
 
                         try:
@@ -226,7 +220,6 @@ class MainProcessingAgent:
                         "images": image_results,
                     }
                 else:
-                    print("No images found in PDF")
                     doc_results["extracted_images"] = {
                         "total_images": 0,
                         "processed_images": 0,
@@ -249,7 +242,6 @@ class MainProcessingAgent:
         self, file_path: str, document_type: DocumentType
     ) -> Dict[str, Any]:
         """Process an image file."""
-        print("Processing image file...")
 
         # Process the image
         img_results = self.image_agent.process_image(file_path, document_type)
@@ -297,22 +289,14 @@ class MainProcessingAgent:
                 "files": [],
                 "processing_timestamp": self._get_timestamp(),
             }
-
-        print(f"Found {len(all_files)} files to process")
-        print("-" * 50)
-
         # Process each file
         processed_files = []
         for i, file_path in enumerate(all_files):
-            print(
-                f"\nProcessing file {i + 1}/{len(all_files)}: {os.path.basename(file_path)}"
-            )
             try:
                 result = self.process_file(file_path, document_type)
                 result["file_path"] = file_path
                 result["processed"] = True
                 processed_files.append(result)
-                print(f"✓ Successfully processed {os.path.basename(file_path)}")
             except Exception as e:
                 print(f"✗ Error processing {os.path.basename(file_path)}: {e}")
                 processed_files.append(
@@ -374,20 +358,14 @@ class MainProcessingAgent:
         Returns:
             Dictionary containing batch processing results
         """
-        print(f"Starting batch processing of {len(file_paths)} files...")
-        print("-" * 50)
 
         processed_files = []
         for i, file_path in enumerate(file_paths):
-            print(
-                f"\nProcessing file {i + 1}/{len(file_paths)}: {os.path.basename(file_path)}"
-            )
             try:
                 result = self.process_file(file_path, document_type)
                 result["file_path"] = file_path
                 result["processed"] = True
                 processed_files.append(result)
-                print(f"✓ Successfully processed {os.path.basename(file_path)}")
             except Exception as e:
                 print(f"✗ Error processing {os.path.basename(file_path)}: {e}")
                 processed_files.append(

@@ -3,7 +3,8 @@ Language detection utilities for document processing.
 """
 
 import re
-from parser_shadai.agents.language_config import get_supported_languages, Language
+
+from parser_shadai.agents.language_config import Language, get_supported_languages
 
 
 class LanguageDetector:
@@ -42,7 +43,6 @@ Language code:"""
                 prompt, temperature=0.1, max_tokens=10
             )
             detected_lang = response.content.strip().lower()
-            print(f"Detected language: {detected_lang}")
             # Validate the detected language
             if detected_lang in get_supported_languages():
                 return detected_lang, response.usage

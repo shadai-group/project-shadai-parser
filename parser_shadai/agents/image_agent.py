@@ -2,18 +2,18 @@
 Image processing agent for analyzing images with LLM.
 """
 
-from typing import List, Dict, Any, Optional
 import os
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
+
 from PIL import Image
 
 from parser_shadai.agents.image_categories import get_all_categories
+from parser_shadai.agents.language_config import get_language_prompt
 from parser_shadai.agents.language_detector import LanguageDetector
-
+from parser_shadai.agents.metadata_schemas import DocumentType
 from parser_shadai.llm_providers.base import BaseLLMProvider
 from parser_shadai.parsers.image_parser import ImageParser
-from parser_shadai.agents.metadata_schemas import DocumentType
-from parser_shadai.agents.language_config import get_language_prompt
 
 
 @dataclass
@@ -66,11 +66,9 @@ class ImageAgent:
             self.language, usage = self.language_detector.detect_language_with_llm(
                 text, self.llm_provider
             )
-            print(f"Language: {self.language}")
             return usage
         else:
             self.language = self.config.language
-            print(f"Language: {self.language}")
             return None
 
     def process_image(
@@ -90,10 +88,7 @@ class ImageAgent:
         total_usage = {"prompt_tokens": 0, "completion_tokens": 0}
 
         try:
-            print(f"Processing image: {image_path}")
-
             # Step 1: Load and preprocess image
-            print("Step 1: Loading and preprocessing image...")
             image = self.image_parser.load_image(image_path)
             image_info = self.image_parser.get_image_info(image)
 
@@ -105,12 +100,10 @@ class ImageAgent:
                 image = self.image_parser.resize_image(
                     image, self.config.max_image_size
                 )
-                print(f"Resized image to {image.size}")
 
             # Step 2: Extract text content (OCR)
             extracted_text = ""
             if self.config.extract_text:
-                print("Step 2: Extracting text from image...")
                 try:
                     response = self.image_parser.extract_text_from_image(
                         image, temperature=self.config.temperature
@@ -131,7 +124,6 @@ class ImageAgent:
                             "completion_tokens", 0
                         )
                     extracted_text = response.content if response.content else ""
-                    print(f"Extracted {len(extracted_text)} characters of text")
                 except Exception as e:
                     print(f"Warning: Text extraction failed: {e}")
                     extracted_text = ""
@@ -139,7 +131,6 @@ class ImageAgent:
             # Step 3: Generate detailed description
             description = ""
             if self.config.describe_content:
-                print("Step 3: Generating image description...")
                 try:
                     response = self.image_parser.describe_image(
                         image, temperature=self.config.temperature
@@ -152,7 +143,6 @@ class ImageAgent:
                             "completion_tokens", 0
                         )
                     description = response.content if response.content else ""
-                    print("Image description generated")
                 except Exception as e:
                     print(f"Warning: Description generation failed: {e}")
                     description = ""
@@ -160,7 +150,6 @@ class ImageAgent:
             # Step 4: Classify image type
             classification = ""
             if self.config.classify_type:
-                print("Step 4: Classifying image type...")
                 try:
                     response = self.image_parser.classify_image(
                         image,
@@ -175,13 +164,11 @@ class ImageAgent:
                             "completion_tokens", 0
                         )
                     classification = response.content if response.content else ""
-                    print(f"Image classified as: {classification}")
                 except Exception as e:
                     print(f"Warning: Classification failed: {e}")
                     classification = ""
 
             # Step 5: Extract structured metadata
-            print("Step 5: Extracting structured metadata...")
             metadata, metadata_usage = self._extract_image_metadata(
                 image, extracted_text, description, classification, document_type
             )
@@ -192,7 +179,6 @@ class ImageAgent:
                 )
 
             # Step 6: Compile results
-            print("Step 6: Compiling results...")
             results = self._compile_image_results(
                 image_path,
                 image_info,
@@ -205,7 +191,6 @@ class ImageAgent:
             # Add usage information to results
             results["usage"] = total_usage
 
-            print("Image processing completed successfully!")
             return results
 
         except Exception as e:
@@ -226,11 +211,8 @@ class ImageAgent:
             Dictionary containing processed images data
         """
         try:
-            print(f"Processing {len(image_paths)} images...")
-
             processed_images = []
             for i, image_path in enumerate(image_paths):
-                print(f"\nProcessing image {i + 1}/{len(image_paths)}: {image_path}")
                 try:
                     image_result = self.process_image(image_path, document_type)
                     processed_images.append(image_result)
@@ -242,7 +224,6 @@ class ImageAgent:
                     )
 
             # Generate comparative analysis
-            print("Generating comparative analysis...")
             comparison = self._generate_comparison_analysis(processed_images)
 
             return {
