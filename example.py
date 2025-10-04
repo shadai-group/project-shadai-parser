@@ -23,6 +23,6 @@ api_key = os.getenv("GOOGLE_API_KEY")
 agent = MainProcessingAgent(llm_provider=GeminiProvider(api_key=api_key), config=config)
 
 result = agent.process_file("SPA-Constiution.pdf")
-print(result.get("usage"))
+print(result.get("chunks")[0].get("metadata").get("summary"))
 print(f"Time taken: {time.time() - init} seconds")
 print("Done")

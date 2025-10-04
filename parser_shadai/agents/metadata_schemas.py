@@ -2,10 +2,11 @@
 Metadata schemas and document type definitions for the processing agents.
 """
 
-from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
-from enum import Enum
 import json
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
 from parser_shadai.agents.language_config import get_language_prompt
 
 
@@ -313,10 +314,11 @@ Text chunk:
 {chunk}
 
 Instructions:
-1. Extract information for each field based on the document type: {self.document_type.value}
-2. If a field cannot be determined from the text, use null or an empty string
-3. For the summary field, provide a concise summary of the chunk content
-4. Return only valid JSON, no additional text
+1. You must respond in the predominant language of the text chunk.
+2. Extract information for each field based on the document type: {self.document_type.value}
+3. If a field cannot be determined from the text, use null or an empty string
+4. For the summary field, provide a concise summary of the chunk content
+5. Return only valid JSON, no additional text
 
 JSON Response:
 """
