@@ -4,7 +4,7 @@ Language detection utilities for document processing.
 
 import re
 
-from parser_shadai.agents.language_config import Language, get_supported_languages
+from parser_shadai.agents.language_config import get_supported_languages
 
 
 class LanguageDetector:
@@ -17,26 +17,31 @@ class LanguageDetector:
 
         Args:
             text: Text content to analyze
-            llm_provider: LLM provider instance (optional)
             llm_provider: LLM provider instance
 
         Returns:
             Tuple of (Language code, usage dict)
         """
-        if not text or len(text.strip()) < 10:
-            return "en", None
-
         # Take first 500 characters for language detection
         sample_text = text[:500]
 
-        prompt = f"""Analyze the following text and determine its language. Return only the language code.
+        prompt = f"""
+        You are a professional language detection system. Your task is to identify the primary language of the given text sample with high accuracy.
 
-Supported languages: {", ".join(get_supported_languages())}
+        INSTRUCTIONS:
+        1. Analyze the text carefully for linguistic patterns, vocabulary, and structure
+        2. Return ONLY the ISO language code (e.g., 'en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'zh', 'ja', 'ar')
+        3. Be precise - choose the single most dominant language
+        4. If multiple languages are present, identify the PRIMARY language (most prevalent)
+        5. Consider context clues like proper nouns, technical terms, and sentence structure
 
-Text sample:
-{sample_text}
+        SUPPORTED LANGUAGES: {", ".join(get_supported_languages())}
 
-Language code:"""
+        TEXT TO ANALYZE:
+        {sample_text}
+
+        LANGUAGE CODE:
+        """
 
         try:
             response = llm_provider.generate_text(
@@ -47,13 +52,15 @@ Language code:"""
             if detected_lang in get_supported_languages():
                 return detected_lang, response.usage
             else:
-                # Fallback to pattern-based detection
-                return Language.ENGLISH.value, response.usage
+                # If unsupported language detected, raise an error instead of fallback
+                raise ValueError(
+                    f"Detected language '{detected_lang}' is not supported. Supported languages: {get_supported_languages()}"
+                )
 
         except Exception as e:
-            print(f"Warning: LLM language detection failed: {e}")
-            # Fallback to pattern-based detection
-            return Language.ENGLISH.value, None
+            print(f"Error: Language detection failed: {e}")
+            # Instead of falling back to English, raise the error
+            raise RuntimeError(f"Language detection is required but failed: {e}")
 
     @classmethod
     def get_language_confidence(cls, text: str, language: str) -> float:

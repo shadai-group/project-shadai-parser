@@ -304,24 +304,28 @@ class ChunkProcessor:
         language_prompt = get_language_prompt(self.language)
 
         prompt = f"""
-{language_prompt}
+        {language_prompt}
 
-Extract the following metadata from the given text chunk. Return the result as a JSON object with the specified fields.
+        CRITICAL INSTRUCTION: You MUST respond in {self.language.upper()} language. All extracted metadata, summaries, and field values must be in {self.language.upper()}.
 
-Required fields: {fields_str}
+        Extract the following metadata from the given text chunk. Return the result as a JSON object with the specified fields.
 
-Text chunk:
-{chunk}
+        DOCUMENT TYPE: {self.document_type.value}
+        REQUIRED FIELDS: {fields_str}
 
-Instructions:
-1. You must respond in the predominant language of the text chunk.
-2. Extract information for each field based on the document type: {self.document_type.value}
-3. If a field cannot be determined from the text, use null or an empty string
-4. For the summary field, provide a concise summary of the chunk content
-5. Return only valid JSON, no additional text
+        TEXT CHUNK TO ANALYZE:
+        {chunk}
 
-JSON Response:
-"""
+        EXTRACTION INSTRUCTIONS:
+        1. **LANGUAGE REQUIREMENT**: All responses must be in {self.language.upper()} language
+        2. **FIELD EXTRACTION**: Extract information for each field based on the document type
+        3. **NULL VALUES**: If a field cannot be determined from the text, use null or an empty string
+        4. **SUMMARY**: Provide a concise summary of the chunk content in {self.language.upper()}
+        5. **JSON FORMAT**: Return only valid JSON, no additional text or explanations
+        6. **LANGUAGE CONSISTENCY**: Ensure all text fields maintain consistency in {self.language.upper()}
+
+        JSON Response (in {self.language.upper()}):
+        """
         return prompt
 
     def _parse_metadata_response(self, response: str) -> Dict[str, Any]:

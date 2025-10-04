@@ -43,8 +43,8 @@ class AgentConfig:
     folder_processing: bool = False
 
     # Language config
-    language: str = "en"
-    auto_detect_language: bool = False
+    language: str = None  # Will be set by language detection
+    auto_detect_language: bool = True
 
 
 class MainProcessingAgent:

@@ -27,8 +27,8 @@ class ImageProcessingConfig:
     extract_metadata: bool = True
     temperature: float = 0.3
     categories: List[str] = None
-    language: str = "en"
-    auto_detect_language: bool = False
+    language: str = None  # Will be set by language detection
+    auto_detect_language: bool = True
 
 
 class ImageAgent:
@@ -66,9 +66,14 @@ class ImageAgent:
             self.language, usage = self.language_detector.detect_language_with_llm(
                 text, self.llm_provider
             )
+            # Force the detected language to be used
+            self.config.language = self.language
             return usage
         else:
-            self.language = self.config.language
+            # This should not happen since auto_detect_language is now True by default
+            raise ValueError(
+                "Language detection is required but auto_detect_language is disabled"
+            )
             return None
 
     def process_image(
@@ -264,31 +269,41 @@ class ImageAgent:
         # Create prompt for metadata extraction
         language_prompt = get_language_prompt(self.config.language)
         prompt = f"""
-{language_prompt}
+        {language_prompt}
 
-Analyze the following image information and extract structured metadata based on the document type: {document_type.value}
+        CRITICAL INSTRUCTION: You MUST respond in {self.config.language.upper()} language. All extracted metadata, descriptions, and field values must be in {self.config.language.upper()}.
 
-Image Description: {description}
-Extracted Text: {extracted_text}
-Classification: {classification}
-Image Size: {image.size}
-Image Mode: {image.mode}
+        You are an expert image analyst. Analyze the following image information and extract structured metadata based on the document type: {document_type.value}
 
-Extract the following metadata fields:
-- summary: Brief summary of the image content
-- document_type: {document_type.value}
-- image_type: Type/category of image
-- text_content: Any text found in the image
-- visual_elements: Key visual elements (objects, people, text, etc.)
-- colors: Dominant colors or color scheme
-- layout: Description of layout and composition
-- quality_assessment: Assessment of image quality and clarity
-- relevance_score: How relevant this image is to the document type (0-1)
-- action_items: Any action items or next steps suggested by the image
-- technical_details: Technical aspects (resolution, format, etc.)
+        IMAGE ANALYSIS DATA:
+        - Description: {description}
+        - Extracted Text: {extracted_text}
+        - Classification: {classification}
+        - Image Size: {image.size}
+        - Image Mode: {image.mode}
 
-Return the result as a JSON object with these fields.
-"""
+        METADATA FIELDS TO EXTRACT (all in {self.config.language.upper()}):
+        - summary: Brief summary of the image content
+        - document_type: {document_type.value}
+        - image_type: Type/category of image
+        - text_content: Any text found in the image
+        - visual_elements: Key visual elements (objects, people, text, etc.)
+        - colors: Dominant colors or color scheme
+        - layout: Description of layout and composition
+        - quality_assessment: Assessment of image quality and clarity
+        - relevance_score: How relevant this image is to the document type (0-1)
+        - action_items: Any action items or next steps suggested by the image
+        - technical_details: Technical aspects (resolution, format, etc.)
+
+        EXTRACTION INSTRUCTIONS:
+        1. **LANGUAGE REQUIREMENT**: All responses must be in {self.config.language.upper()} language
+        2. **COMPREHENSIVE ANALYSIS**: Provide detailed analysis for each field
+        3. **CONTEXT AWARENESS**: Consider the document type context for relevance
+        4. **STRUCTURED OUTPUT**: Return only valid JSON format
+        5. **LANGUAGE CONSISTENCY**: Ensure all text fields maintain consistency in {self.config.language.upper()}
+
+        JSON Response (in {self.config.language.upper()}):
+        """
 
         try:
             response = self.llm_provider.generate_text(
@@ -311,25 +326,19 @@ Return the result as a JSON object with these fields.
                     "document_type": document_type.value,
                     "image_type": classification,
                     "text_content": extracted_text,
-                    "raw_response": response.content,
+                    "visual_elements": "Analysis failed",
+                    "colors": "Unknown",
+                    "layout": "Unknown",
+                    "quality_assessment": "Unknown",
+                    "relevance_score": 0.5,
+                    "action_items": "None identified",
+                    "technical_details": f"Size: {image.size}, Mode: {image.mode}",
                 }
-
-            # Add technical details
-            metadata.update(
-                {
-                    "image_width": image.size[0],
-                    "image_height": image.size[1],
-                    "image_mode": image.mode,
-                    "has_transparency": image.mode in ("RGBA", "LA")
-                    or "transparency" in image.info,
-                    "file_size_estimate": len(image.tobytes()),
-                }
-            )
 
             return metadata, response.usage
 
         except Exception as e:
-            print(f"Warning: Metadata extraction failed: {e}")
+            print(f"Warning: Could not extract image metadata: {e}")
             return {
                 "summary": description[:200] + "..."
                 if len(description) > 200
@@ -337,8 +346,110 @@ Return the result as a JSON object with these fields.
                 "document_type": document_type.value,
                 "image_type": classification,
                 "text_content": extracted_text,
-                "extraction_error": str(e),
+                "error": str(e),
             }, None
+
+    def _generate_image_description(
+        self, image: Image.Image, extracted_text: str = ""
+    ) -> str:
+        """
+        Generate detailed description of image content.
+
+        Args:
+            image: PIL Image object
+            extracted_text: Any text extracted from the image
+
+        Returns:
+            Detailed description string
+        """
+        # Get language prompt for the detected language
+        language_prompt = get_language_prompt(self.config.language)
+
+        context_info = (
+            f"\nExtracted text from image: {extracted_text}" if extracted_text else ""
+        )
+
+        prompt = f"""
+        {language_prompt}
+
+        CRITICAL INSTRUCTION: You MUST respond in {self.config.language.upper()} language. Provide a detailed description entirely in {self.config.language.upper()}.
+
+        You are an expert image analyst. Analyze this image and provide a comprehensive description.
+
+        DESCRIPTION REQUIREMENTS (all in {self.config.language.upper()}):
+        1. **LANGUAGE**: All descriptions must be in {self.config.language.upper()}
+        2. **VISUAL ELEMENTS**: Describe objects, people, text, and visual components
+        3. **LAYOUT**: Describe the arrangement and composition
+        4. **COLORS**: Mention dominant colors and color schemes
+        5. **STYLE**: Describe the visual style (professional, casual, artistic, etc.)
+        6. **CONTEXT**: Infer the purpose or context of the image
+        7. **DETAILS**: Include relevant details that might be important for document analysis
+
+        {context_info}
+
+        Provide a detailed description in {self.config.language.upper()}:
+        """
+
+        try:
+            response = self.image_parser.describe_image(
+                image,
+                prompt=prompt,
+                temperature=self.config.temperature,
+                max_tokens=800,
+            )
+            return response.content.strip()
+        except Exception as e:
+            print(f"Warning: Could not generate image description: {e}")
+            return f"Image analysis failed: {str(e)}"
+
+    def _classify_image(self, image: Image.Image, extracted_text: str = "") -> str:
+        """
+        Classify image type and category.
+
+        Args:
+            image: PIL Image object
+            extracted_text: Any text extracted from the image
+
+        Returns:
+            Classification string
+        """
+        # Get language prompt for the detected language
+        language_prompt = get_language_prompt(self.config.language)
+
+        context_info = f"\nExtracted text: {extracted_text}" if extracted_text else ""
+        categories = self.config.categories or get_all_categories()
+
+        prompt = f"""
+        {language_prompt}
+
+        CRITICAL INSTRUCTION: You MUST respond in {self.config.language.upper()} language. Provide classification entirely in {self.config.language.upper()}.
+
+        You are an expert image classifier. Analyze this image and classify it into the most appropriate category.
+
+        CLASSIFICATION REQUIREMENTS:
+        1. **LANGUAGE**: All responses must be in {self.config.language.upper()}
+        2. **PRECISION**: Choose the single most accurate category
+        3. **CONTEXT**: Consider the image content, style, and purpose
+
+        AVAILABLE CATEGORIES: {", ".join(categories)}
+
+        {context_info}
+
+        Based on the image analysis, return the most appropriate category in {self.config.language.upper()}:
+        """
+
+        try:
+            response = self.image_parser.classify_image(
+                image,
+                categories=categories,
+                prompt=prompt,
+                temperature=self.config.temperature,
+                max_tokens=50,
+            )
+            return response.content.strip()
+        except Exception as e:
+            print(f"Warning: Could not classify image: {e}")
+            return "unknown"
 
     def _compile_image_results(
         self,

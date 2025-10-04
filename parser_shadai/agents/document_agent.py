@@ -29,8 +29,8 @@ class ProcessingConfig:
     temperature: float = (
         0.3  # Lower temperature for more consistent metadata extraction
     )
-    language: str = "en"
-    auto_detect_language: bool = False
+    language: str = None  # Will be set by language detection
+    auto_detect_language: bool = True
 
 
 class DocumentAgent:
@@ -75,9 +75,14 @@ class DocumentAgent:
             self.language, usage = self.language_detector.detect_language_with_llm(
                 text, self.llm_provider
             )
+            # Force the detected language to be used
+            self.config.language = self.language
             return usage
         else:
-            self.language = self.config.language
+            # This should not happen since auto_detect_language is now True by default
+            raise ValueError(
+                "Language detection is required but auto_detect_language is disabled"
+            )
             return None
 
     def process_document(
@@ -164,24 +169,40 @@ class DocumentAgent:
         Returns:
             Tuple of (detected document type, usage dict)
         """
+        # Get language prompt for the detected language
+        from parser_shadai.agents.language_config import get_language_prompt
+
+        language_prompt = get_language_prompt(self.language)
+
         # Create prompt for document type detection
         prompt = f"""
-Analyze the following document and determine its type. Consider both the content and metadata.
+        {language_prompt}
 
-Document metadata: {metadata}
-Document content (first 2000 characters): {text[:2000]}
+        CRITICAL INSTRUCTION: Analyze the document in {self.language.upper()} and respond in {self.language.upper()}.
 
-Available document types:
-- legal: Legal documents, contracts, court papers, legal briefs
-- medical: Medical reports, patient records, clinical studies
-- financial: Financial statements, invoices, banking documents
-- technical: Technical manuals, documentation, specifications
-- academic: Research papers, theses, academic articles
-- business: Business plans, reports, proposals
-- general: General documents that don't fit other categories
+        You are a professional document classifier. Analyze the following document and determine its type based on content, structure, and context.
 
-Return only the document type (e.g., "legal", "medical", etc.) based on the content and context.
-"""
+        DOCUMENT METADATA: {metadata}
+        DOCUMENT CONTENT (first 2000 characters): {text[:2000]}
+
+        AVAILABLE DOCUMENT TYPES:
+        - legal: Legal documents, contracts, court papers, legal briefs, regulations
+        - medical: Medical reports, patient records, clinical studies, health documents
+        - financial: Financial statements, invoices, banking documents, accounting records
+        - technical: Technical manuals, documentation, specifications, engineering documents
+        - academic: Research papers, theses, academic articles, educational materials
+        - business: Business plans, reports, proposals, corporate documents
+        - general: General documents that don't fit other specific categories
+
+        CLASSIFICATION INSTRUCTIONS:
+        1. Consider the vocabulary, terminology, and language patterns specific to each domain
+        2. Analyze document structure and formatting conventions
+        3. Look for domain-specific elements (legal clauses, medical terminology, financial figures, etc.)
+        4. Consider the context provided by metadata (title, author, subject)
+        5. Return ONLY the document type code (e.g., "legal", "medical", etc.)
+
+        DOCUMENT TYPE:
+        """
 
         try:
             response = self.llm_provider.generate_text(
