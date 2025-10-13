@@ -3,17 +3,41 @@ Agents module for Parser Shadai.
 Contains intelligent processing agents for documents and images.
 """
 
+from .async_processor import AsyncBatchProcessor, process_chunks_sync
+from .cache_manager import (
+    CacheConfig,
+    CacheManager,
+    clear_global_cache,
+    get_cache_manager,
+)
 from .document_agent import DocumentAgent, ProcessingConfig
 from .image_agent import ImageAgent, ImageProcessingConfig
-from .main_agent import MainProcessingAgent, AgentConfig
+from .interfaces import (
+    IBatchProcessor,
+    ICacheProvider,
+    IDocumentProcessor,
+    IDocumentTypeDetector,
+    ILanguageDetector,
+    IMetadataExtractor,
+    IProviderFactory,
+    IResultCompiler,
+    ITextChunker,
+)
+from .main_agent import AgentConfig, MainProcessingAgent
 from .metadata_schemas import (
+    ChunkNode,
+    ChunkProcessor,
     DocumentType,
     MetadataSchema,
-    ChunkNode,
     MetadataSchemas,
-    ChunkProcessor,
 )
-from .text_chunker import TextChunker, SmartChunker
+from .optimized_metadata_extractor import OptimizedMetadataExtractor
+from .strategies import (
+    LegacyMetadataExtractor,
+    OptimizedMetadataStrategy,
+    ProviderFactory,
+)
+from .text_chunker import SmartChunker, TextChunker
 
 __all__ = [
     "DEFAULT_CATEGORIES",
@@ -36,4 +60,25 @@ __all__ = [
     "ChunkProcessor",
     "TextChunker",
     "SmartChunker",
+    "OptimizedMetadataExtractor",
+    "AsyncBatchProcessor",
+    "process_chunks_sync",
+    "CacheConfig",
+    "CacheManager",
+    "get_cache_manager",
+    "clear_global_cache",
+    # Phase 4 - SOLID interfaces
+    "IMetadataExtractor",
+    "IDocumentTypeDetector",
+    "ITextChunker",
+    "IBatchProcessor",
+    "ILanguageDetector",
+    "IProviderFactory",
+    "IDocumentProcessor",
+    "IResultCompiler",
+    "ICacheProvider",
+    # Phase 4 - Strategy implementations
+    "LegacyMetadataExtractor",
+    "OptimizedMetadataStrategy",
+    "ProviderFactory",
 ]

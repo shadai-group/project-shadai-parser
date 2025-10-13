@@ -6,6 +6,15 @@ import os
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
+from parser_shadai.agents.async_processor import process_chunks_sync
+from parser_shadai.agents.cache_manager import (
+    CacheConfig,
+    cache_document_type,
+    cache_language,
+    get_cache_manager,
+    get_cached_document_type,
+    get_cached_language,
+)
 from parser_shadai.agents.language_detector import LanguageDetector
 from parser_shadai.agents.metadata_schemas import (
     ChunkNode,
@@ -19,18 +28,34 @@ from parser_shadai.parsers.pdf_parser import PDFParser
 
 @dataclass
 class ProcessingConfig:
-    """Configuration for document processing."""
+    """
+    Configuration for document processing.
 
-    chunk_size: int = 1000
-    overlap_size: int = 200
+    Optimized defaults (Phase 1 + Phase 2 + Phase 3):
+    - chunk_size: 4000 (vs 1000) = 75% fewer chunks
+    - auto_detect_language: True = metadata in document's language (with caching)
+    - language: "en" = default if auto-detection disabled
+    - temperature: 0.2 = more consistent results
+    - use_optimized_extraction: True = document-level metadata + async batch processing
+    - enable_caching: True = cache expensive LLM operations
+    """
+
+    chunk_size: int = 4000  # Increased from 1000 for 75% fewer LLM calls
+    overlap_size: int = 400  # Proportional overlap
     use_smart_chunking: bool = True
-    extract_images: bool = True
+    extract_images: bool = False  # Disabled for speed (was True)
     max_pages: Optional[int] = None
-    temperature: float = (
-        0.3  # Lower temperature for more consistent metadata extraction
+    temperature: float = 0.2  # Lower for more consistent metadata extraction (was 0.3)
+    language: str = "en"  # Default if auto-detection disabled (was None)
+    auto_detect_language: bool = (
+        True  # ENABLED: Auto-detect document language (with caching)
     )
-    language: str = None  # Will be set by language detection
-    auto_detect_language: bool = True
+    # Phase 2 optimization: document-level metadata + async batch processing
+    use_optimized_extraction: bool = True  # Enable Phase 2 optimizations
+    max_concurrent_chunks: int = 10  # Max concurrent chunk processing
+    # Phase 3 optimization: smart caching
+    enable_caching: bool = True  # Enable caching for expensive operations
+    cache_ttl_seconds: int = 86400  # Cache TTL: 24 hours
 
 
 class DocumentAgent:
@@ -69,21 +94,57 @@ class DocumentAgent:
         else:
             self.chunker = TextChunker(chunk_config)
 
+        # Initialize cache manager (Phase 3)
+        if self.config.enable_caching:
+            cache_config = CacheConfig(
+                enabled=True, ttl_seconds=self.config.cache_ttl_seconds
+            )
+            self.cache = get_cache_manager(config=cache_config)
+        else:
+            self.cache = None
+
     def set_language(self, text: str):
-        self.language_detector = LanguageDetector()
+        """
+        Set language for processing with caching (Phase 3).
+
+        If auto_detect_language is enabled, detect using LLM with caching.
+        Otherwise, use the configured default language.
+
+        Args:
+            text: Sample text for language detection
+
+        Returns:
+            Usage dict if language was detected, None otherwise
+        """
         if self.config.auto_detect_language:
+            # Check cache first (Phase 3)
+            if self.config.enable_caching:
+                cached_lang = get_cached_language(content=text[:1000])
+                if cached_lang:
+                    self.language = cached_lang
+                    self.config.language = cached_lang
+                    print(f"✓ Language from cache: {cached_lang}")
+                    return None  # No LLM usage for cache hit
+
+            # Detect with LLM if not cached
+            self.language_detector = LanguageDetector()
             self.language, usage = self.language_detector.detect_language_with_llm(
                 text, self.llm_provider
             )
+
             # Force the detected language to be used
             self.config.language = self.language
+
+            # Cache for future requests (Phase 3)
+            if self.config.enable_caching:
+                cache_language(content=text[:1000], language=self.language)
+
             return usage
         else:
-            # This should not happen since auto_detect_language is now True by default
-            raise ValueError(
-                "Language detection is required but auto_detect_language is disabled"
-            )
-            return None
+            # Use configured default language (no LLM call needed)
+            self.language = self.config.language or "en"
+            self.config.language = self.language
+            return None  # No tokens used
 
     def process_document(
         self,
@@ -139,7 +200,7 @@ class DocumentAgent:
 
             # Step 4: Extract metadata for each chunk
             chunk_nodes, chunk_usage = self._extract_chunk_metadata(
-                chunks_data, document_type
+                chunks_data=chunks_data, document_type=document_type, full_text=pdf_text
             )
             total_usage["prompt_tokens"] += chunk_usage.get("prompt_tokens", 0)
             total_usage["completion_tokens"] += chunk_usage.get("completion_tokens", 0)
@@ -160,7 +221,7 @@ class DocumentAgent:
 
     def _detect_document_type(self, text: str, metadata: Dict[str, Any]):
         """
-        Detect document type using LLM analysis.
+        Detect document type using LLM analysis with caching (Phase 3).
 
         Args:
             text: Document text content
@@ -169,6 +230,24 @@ class DocumentAgent:
         Returns:
             Tuple of (detected document type, usage dict)
         """
+        # Check cache first (Phase 3)
+        if self.config.enable_caching:
+            cached_type = get_cached_document_type(content=text[:5000])
+            if cached_type:
+                # Convert string back to DocumentType enum
+                type_mapping = {
+                    "legal": DocumentType.LEGAL,
+                    "medical": DocumentType.MEDICAL,
+                    "financial": DocumentType.FINANCIAL,
+                    "technical": DocumentType.TECHNICAL,
+                    "academic": DocumentType.ACADEMIC,
+                    "business": DocumentType.BUSINESS,
+                    "general": DocumentType.GENERAL,
+                }
+                document_type = type_mapping.get(cached_type, DocumentType.GENERAL)
+                print(f"✓ Document type from cache: {document_type.value}")
+                return document_type, None  # No LLM usage for cache hit
+
         # Get language prompt for the detected language
         from parser_shadai.agents.language_config import get_language_prompt
 
@@ -222,7 +301,13 @@ class DocumentAgent:
                 "general": DocumentType.GENERAL,
             }
 
-            return type_mapping.get(detected_type, DocumentType.GENERAL), response.usage
+            document_type = type_mapping.get(detected_type, DocumentType.GENERAL)
+
+            # Cache the result (Phase 3)
+            if self.config.enable_caching:
+                cache_document_type(content=text[:5000], document_type=document_type)
+
+            return document_type, response.usage
 
         except Exception as e:
             print(f"Warning: Could not detect document type: {e}")
@@ -245,10 +330,88 @@ class DocumentAgent:
             return self.chunker.chunk_text(text)
 
     def _extract_chunk_metadata(
-        self, chunks_data: List[Dict[str, Any]], document_type: DocumentType
+        self,
+        chunks_data: List[Dict[str, Any]],
+        document_type: DocumentType,
+        full_text: str = "",
     ):
         """
         Extract metadata for each chunk using LLM.
+
+        Uses optimized approach (Phase 2) if enabled:
+        - Extract document-level metadata once from first 5000 chars
+        - Extract minimal metadata per chunk (summary + key concepts)
+        - Process chunks concurrently for speed
+
+        Args:
+            chunks_data: List of chunk data
+            document_type: Type of document
+            full_text: Full document text for document-level metadata extraction
+
+        Returns:
+            Tuple of (List of ChunkNode objects with metadata, usage dict)
+        """
+        # Use optimized extraction if enabled (Phase 2)
+        if self.config.use_optimized_extraction:
+            return self._extract_chunk_metadata_optimized(
+                chunks_data=chunks_data,
+                document_type=document_type,
+                full_text=full_text,
+            )
+
+        # Fallback to legacy extraction (original approach)
+        return self._extract_chunk_metadata_legacy(
+            chunks_data=chunks_data, document_type=document_type
+        )
+
+    def _extract_chunk_metadata_optimized(
+        self,
+        chunks_data: List[Dict[str, Any]],
+        document_type: DocumentType,
+        full_text: str,
+    ):
+        """
+        Optimized metadata extraction (Phase 2).
+
+        Extracts comprehensive metadata once at document level,
+        then minimal metadata per chunk with async batch processing.
+
+        Args:
+            chunks_data: List of chunk data
+            document_type: Type of document
+            full_text: Full document text
+
+        Returns:
+            Tuple of (List of ChunkNode objects with metadata, usage dict)
+        """
+        # Get document sample (first 5000 chars)
+        document_sample = full_text[:5000] if len(full_text) > 5000 else full_text
+
+        # Process chunks with async batch processor
+        chunk_nodes, results = process_chunks_sync(
+            llm_provider=self.llm_provider,
+            chunks_data=chunks_data,
+            document_sample=document_sample,
+            document_type=document_type,
+            language=self.config.language,
+            temperature=self.config.temperature,
+            max_concurrent=self.config.max_concurrent_chunks,
+            enable_caching=self.config.enable_caching,
+        )
+
+        # Extract usage from results
+        total_usage = results.get("usage", {"prompt_tokens": 0, "completion_tokens": 0})
+
+        return chunk_nodes, total_usage
+
+    def _extract_chunk_metadata_legacy(
+        self, chunks_data: List[Dict[str, Any]], document_type: DocumentType
+    ):
+        """
+        Legacy metadata extraction (original approach).
+
+        Kept for backward compatibility. Extracts all schema fields
+        for each chunk sequentially.
 
         Args:
             chunks_data: List of chunk data

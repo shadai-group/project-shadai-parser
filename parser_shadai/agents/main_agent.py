@@ -22,29 +22,49 @@ from parser_shadai.llm_providers.base import BaseLLMProvider
 
 @dataclass
 class AgentConfig:
-    """Configuration for the main processing agent."""
+    """
+    Configuration for the main processing agent.
 
-    # Document processing config
-    chunk_size: int = 1000
-    overlap_size: int = 200
+    Optimized defaults (Phase 1 + Phase 2 + Phase 3):
+    - chunk_size: 4000 (vs 1000) = 75% fewer chunks/LLM calls
+    - auto_detect_language: True = metadata in document's language (with caching)
+    - language: "en" = default if auto-detection disabled
+    - extract_images: False = text-only for speed
+    - use_optimized_extraction: True = document-level metadata + async batch processing
+    - enable_caching: True = cache expensive LLM operations
+    """
+
+    # Document processing config (OPTIMIZED)
+    chunk_size: int = 4000  # Increased from 1000 for 75% fewer LLM calls
+    overlap_size: int = 400  # Proportional overlap
     use_smart_chunking: bool = True
-    extract_images: bool = True
+    extract_images: bool = False  # Disabled for speed (was True)
 
-    # Image processing config
+    # Image processing config (DISABLED for speed)
     max_image_size: tuple = (1024, 1024)
-    extract_text_from_images: bool = True
-    describe_images: bool = True
-    classify_images: bool = True
+    extract_text_from_images: bool = False  # Disabled (was True)
+    describe_images: bool = False  # Disabled (was True)
+    classify_images: bool = False  # Disabled (was True)
 
     # General config
-    temperature: float = 0.3
+    temperature: float = 0.2  # Lower for more consistent results (was 0.3)
     auto_detect_document_type: bool = True
     parallel_processing: bool = False
     folder_processing: bool = False
 
-    # Language config
-    language: str = None  # Will be set by language detection
-    auto_detect_language: bool = True
+    # Language config (Auto-detection with caching)
+    language: str = "en"  # Default if auto-detection disabled
+    auto_detect_language: bool = (
+        True  # ENABLED: Auto-detect document language (with caching)
+    )
+
+    # Phase 2 optimization: document-level metadata + async batch processing
+    use_optimized_extraction: bool = True  # Enable Phase 2 optimizations
+    max_concurrent_chunks: int = 10  # Max concurrent chunk processing
+
+    # Phase 3 optimization: smart caching
+    enable_caching: bool = True  # Enable caching for expensive operations
+    cache_ttl_seconds: int = 86400  # Cache TTL: 24 hours
 
 
 class MainProcessingAgent:
@@ -80,6 +100,10 @@ class MainProcessingAgent:
             temperature=self.config.temperature,
             language=self.config.language,
             auto_detect_language=self.config.auto_detect_language,
+            use_optimized_extraction=self.config.use_optimized_extraction,
+            max_concurrent_chunks=self.config.max_concurrent_chunks,
+            enable_caching=self.config.enable_caching,
+            cache_ttl_seconds=self.config.cache_ttl_seconds,
         )
 
         img_config = ImageProcessingConfig(
