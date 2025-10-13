@@ -53,9 +53,11 @@ class ProviderFactory(IProviderFactory):
     # Provider name constants
     GOOGLE = "google"
     GEMINI = "gemini"
+    GOOGLE_GENAI = "google_genai"  # Alias for Google/Gemini (Django API)
     ANTHROPIC = "anthropic"
     OPENAI = "openai"
     BEDROCK = "bedrock"
+    BEDROCK_CONVERSE = "bedrock_converse"  # Alias for Bedrock (Django API)
 
     def create_provider(
         self, provider_name: str, credentials: Any, **kwargs: Any
@@ -64,7 +66,7 @@ class ProviderFactory(IProviderFactory):
         Create LLM provider instance based on provider name.
 
         Args:
-            provider_name: Name of provider (google, anthropic, openai, bedrock)
+            provider_name: Name of provider (google, google_genai, gemini, anthropic, openai, bedrock, bedrock_converse)
             credentials: API key string or AWSCredentials object
             **kwargs: Additional configuration (model, timeout, etc.)
 
@@ -77,7 +79,7 @@ class ProviderFactory(IProviderFactory):
         provider_name_lower = provider_name.lower()
 
         # Handle AWS Bedrock (requires special credentials)
-        if provider_name_lower == self.BEDROCK:
+        if provider_name_lower in (self.BEDROCK, self.BEDROCK_CONVERSE):
             return self._create_bedrock_provider(credentials=credentials, **kwargs)
 
         # Handle API key-based providers
@@ -88,7 +90,7 @@ class ProviderFactory(IProviderFactory):
             )
 
         # Create provider based on name
-        if provider_name_lower in (self.GOOGLE, self.GEMINI):
+        if provider_name_lower in (self.GOOGLE, self.GEMINI, self.GOOGLE_GENAI):
             return self._create_gemini_provider(api_key=credentials, **kwargs)
         elif provider_name_lower == self.ANTHROPIC:
             return self._create_anthropic_provider(api_key=credentials, **kwargs)
@@ -97,8 +99,8 @@ class ProviderFactory(IProviderFactory):
         else:
             raise ValueError(
                 f"Unsupported provider: {provider_name}. "
-                f"Supported providers: {self.GOOGLE}, {self.ANTHROPIC}, "
-                f"{self.OPENAI}, {self.BEDROCK}"
+                f"Supported providers: {self.GOOGLE}, {self.GOOGLE_GENAI}, {self.GEMINI}, "
+                f"{self.ANTHROPIC}, {self.OPENAI}, {self.BEDROCK}, {self.BEDROCK_CONVERSE}"
             )
 
     def _create_gemini_provider(self, api_key: str, **kwargs: Any) -> GeminiProvider:
@@ -172,7 +174,15 @@ class ProviderFactory(IProviderFactory):
         Returns:
             List of provider names
         """
-        return [cls.GOOGLE, cls.GEMINI, cls.ANTHROPIC, cls.OPENAI, cls.BEDROCK]
+        return [
+            cls.GOOGLE,
+            cls.GEMINI,
+            cls.GOOGLE_GENAI,
+            cls.ANTHROPIC,
+            cls.OPENAI,
+            cls.BEDROCK,
+            cls.BEDROCK_CONVERSE,
+        ]
 
     @classmethod
     def is_supported(cls, provider_name: str) -> bool:
