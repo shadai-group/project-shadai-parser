@@ -6,6 +6,7 @@ from .llm_providers.base import BaseLLMProvider
 from .llm_providers.gemini import GeminiProvider
 from .llm_providers.anthropic import AnthropicProvider
 from .llm_providers.openai import OpenAIProvider
+from .llm_providers.azure import AzureOpenAIProvider
 from .parsers.pdf_parser import PDFParser
 from .parsers.image_parser import ImageParser
 from .llm_client import LLMClient
@@ -24,6 +25,7 @@ __all__ = [
     "GeminiProvider",
     "AnthropicProvider",
     "OpenAIProvider",
+    "AzureOpenAIProvider",
     # Parsers
     "PDFParser",
     "ImageParser",

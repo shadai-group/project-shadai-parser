@@ -11,7 +11,12 @@ Follows:
 
 from typing import Any, Union
 
-from parser_shadai import AnthropicProvider, GeminiProvider, OpenAIProvider
+from parser_shadai import (
+    AnthropicProvider,
+    AzureOpenAIProvider,
+    GeminiProvider,
+    OpenAIProvider,
+)
 from parser_shadai.agents.interfaces import IProviderFactory
 from parser_shadai.llm_providers.base import BaseLLMProvider
 
@@ -33,6 +38,23 @@ class AWSCredentials:
         self.region = region
 
 
+class AzureCredentials:
+    """Azure credentials for Azure OpenAI provider."""
+
+    def __init__(self, api_key: str, azure_endpoint: str, azure_deployment: str):
+        """
+        Initialize Azure credentials.
+
+        Args:
+            api_key: Azure API key
+            azure_endpoint: Azure endpoint URL
+            azure_deployment: Azure deployment name
+        """
+        self.api_key = api_key
+        self.azure_endpoint = azure_endpoint
+        self.azure_deployment = azure_deployment
+
+
 class ProviderFactory(IProviderFactory):
     """
     Factory for creating LLM provider instances.
@@ -41,6 +63,7 @@ class ProviderFactory(IProviderFactory):
     - Gemini (Google)
     - Anthropic (Claude)
     - OpenAI (GPT)
+    - Azure OpenAI
     - Bedrock (AWS) - placeholder for future implementation
 
     Benefits:
@@ -56,6 +79,7 @@ class ProviderFactory(IProviderFactory):
     GOOGLE_GENAI = "google_genai"  # Alias for Google/Gemini (Django API)
     ANTHROPIC = "anthropic"
     OPENAI = "openai"
+    AZURE = "azure"
     BEDROCK = "bedrock"
     BEDROCK_CONVERSE = "bedrock_converse"  # Alias for Bedrock (Django API)
 
@@ -66,8 +90,8 @@ class ProviderFactory(IProviderFactory):
         Create LLM provider instance based on provider name.
 
         Args:
-            provider_name: Name of provider (google, google_genai, gemini, anthropic, openai, bedrock, bedrock_converse)
-            credentials: API key string or AWSCredentials object
+            provider_name: Name of provider (google, google_genai, gemini, anthropic, openai, azure, bedrock, bedrock_converse)
+            credentials: API key string, AWSCredentials, or AzureCredentials object
             **kwargs: Additional configuration (model, timeout, etc.)
 
         Returns:
@@ -81,6 +105,10 @@ class ProviderFactory(IProviderFactory):
         # Handle AWS Bedrock (requires special credentials)
         if provider_name_lower in (self.BEDROCK, self.BEDROCK_CONVERSE):
             return self._create_bedrock_provider(credentials=credentials, **kwargs)
+
+        # Handle Azure OpenAI (requires special credentials)
+        if provider_name_lower == self.AZURE:
+            return self._create_azure_provider(credentials=credentials, **kwargs)
 
         # Handle API key-based providers
         if not isinstance(credentials, str):
@@ -100,7 +128,7 @@ class ProviderFactory(IProviderFactory):
             raise ValueError(
                 f"Unsupported provider: {provider_name}. "
                 f"Supported providers: {self.GOOGLE}, {self.GOOGLE_GENAI}, {self.GEMINI}, "
-                f"{self.ANTHROPIC}, {self.OPENAI}, {self.BEDROCK}, {self.BEDROCK_CONVERSE}"
+                f"{self.ANTHROPIC}, {self.OPENAI}, {self.AZURE}, {self.BEDROCK}, {self.BEDROCK_CONVERSE}"
             )
 
     def _create_gemini_provider(self, api_key: str, **kwargs: Any) -> GeminiProvider:
@@ -144,6 +172,35 @@ class ProviderFactory(IProviderFactory):
         """
         return OpenAIProvider(api_key=api_key, **kwargs)
 
+    def _create_azure_provider(
+        self, credentials: Union[AzureCredentials, Any], **kwargs: Any
+    ) -> AzureOpenAIProvider:
+        """
+        Create Azure OpenAI provider instance.
+
+        Args:
+            credentials: Azure credentials object with api_key, azure_endpoint, and azure_deployment
+            **kwargs: Additional configuration
+
+        Returns:
+            AzureOpenAIProvider instance
+
+        Raises:
+            ValueError: If credentials are not AzureCredentials
+        """
+        if not isinstance(credentials, AzureCredentials):
+            raise ValueError(
+                f"Expected AzureCredentials for Azure provider, "
+                f"got {type(credentials).__name__}"
+            )
+
+        return AzureOpenAIProvider(
+            api_key=credentials.api_key,
+            azure_endpoint=credentials.azure_endpoint,
+            azure_deployment=credentials.azure_deployment,
+            **kwargs,
+        )
+
     def _create_bedrock_provider(
         self, credentials: Union[AWSCredentials, Any], **kwargs: Any
     ) -> BaseLLMProvider:
@@ -180,6 +237,7 @@ class ProviderFactory(IProviderFactory):
             cls.GOOGLE_GENAI,
             cls.ANTHROPIC,
             cls.OPENAI,
+            cls.AZURE,
             cls.BEDROCK,
             cls.BEDROCK_CONVERSE,
         ]
