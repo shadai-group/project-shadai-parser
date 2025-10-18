@@ -29,6 +29,7 @@ from typing import Any, Dict
 from parser_shadai import (
     AgentConfig,
     AnthropicProvider,
+    AzureOpenAIProvider,
     GeminiProvider,
     MainProcessingAgent,
     OpenAIProvider,
@@ -63,8 +64,21 @@ def get_llm_provider():
     Raises:
         ValueError: If no API key is found
     """
+
+    # Check Azure OpenAI
+    azure_key = os.getenv("AZURE_API_KEY")
+    if azure_key:
+        print("✓ Using Azure OpenAI provider")
+        azure_endpoint = os.getenv("AZURE_ENDPOINT")
+        azure_deployment = os.getenv("AZURE_DEPLOYMENT")
+        return AzureOpenAIProvider(
+            api_key=azure_key,
+            azure_endpoint=azure_endpoint,
+            azure_deployment=azure_deployment,
+        )
+
     # Check Gemini/Google
-    gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    gemini_key = os.getenv("GOOGLE_API_KEY")
     if gemini_key:
         print("✓ Using Gemini provider")
         return GeminiProvider(api_key=gemini_key)

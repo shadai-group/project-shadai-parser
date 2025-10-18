@@ -11,10 +11,12 @@ from .metadata_extractors import (
     LegacyMetadataExtractor,
     OptimizedMetadataStrategy,
 )
-from .provider_factory import ProviderFactory
+from .provider_factory import AWSCredentials, AzureCredentials, ProviderFactory
 
 __all__ = [
     "LegacyMetadataExtractor",
     "OptimizedMetadataStrategy",
     "ProviderFactory",
+    "AWSCredentials",
+    "AzureCredentials",
 ]
