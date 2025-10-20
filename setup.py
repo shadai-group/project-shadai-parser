@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="parser-shadai",
-    version="0.1.6",
+    version="0.1.7",
     author="Shadai",
     author_email="angie@shadai.ai",
     description="A Python package for parsing PDFs and images using various LLM providers",

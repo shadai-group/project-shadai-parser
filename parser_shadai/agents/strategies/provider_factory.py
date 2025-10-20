@@ -41,7 +41,13 @@ class AWSCredentials:
 class AzureCredentials:
     """Azure credentials for Azure OpenAI provider."""
 
-    def __init__(self, api_key: str, azure_endpoint: str, azure_deployment: str):
+    def __init__(
+        self,
+        api_key: str,
+        azure_endpoint: str,
+        azure_deployment: str,
+        api_version: str,
+    ):
         """
         Initialize Azure credentials.
 
@@ -49,10 +55,12 @@ class AzureCredentials:
             api_key: Azure API key
             azure_endpoint: Azure endpoint URL
             azure_deployment: Azure deployment name
+            api_version: Azure API version
         """
         self.api_key = api_key
         self.azure_endpoint = azure_endpoint
         self.azure_deployment = azure_deployment
+        self.api_version = api_version
 
 
 class ProviderFactory(IProviderFactory):
@@ -198,6 +206,7 @@ class ProviderFactory(IProviderFactory):
             api_key=credentials.api_key,
             azure_endpoint=credentials.azure_endpoint,
             azure_deployment=credentials.azure_deployment,
+            api_version=credentials.api_version,
             **kwargs,
         )
 
