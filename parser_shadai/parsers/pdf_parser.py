@@ -11,6 +11,15 @@ import base64
 
 from parser_shadai.llm_providers.base import BaseLLMProvider, LLMResponse
 
+# Optional OCR support
+try:
+    import pytesseract
+
+    TESSERACT_AVAILABLE = True
+except ImportError:
+    TESSERACT_AVAILABLE = False
+    print("Warning: pytesseract not installed. OCR fallback will not be available.")
+
 
 class PDFParser:
     """PDF Parser for extracting content from PDF documents."""
@@ -24,17 +33,52 @@ class PDFParser:
         """
         self.llm_provider = llm_provider
 
+    def extract_text_with_ocr(self, pdf_path: str, dpi: int = 200) -> str:
+        """
+        Extract text from PDF using OCR (Tesseract).
+
+        Args:
+            pdf_path: Path to the PDF file
+            dpi: DPI for image conversion (default: 200)
+
+        Returns:
+            Extracted text content via OCR
+        """
+        if not TESSERACT_AVAILABLE:
+            raise RuntimeError("OCR requested but pytesseract is not installed")
+
+        try:
+            print(f"⚙️  Using OCR extraction (Tesseract) at {dpi} DPI...")
+            images = convert_from_path(pdf_path, dpi=dpi)
+            text = ""
+
+            for page_num, image in enumerate(images, 1):
+                print(f"  Processing page {page_num}/{len(images)} with OCR...")
+                page_text = pytesseract.image_to_string(image)
+                text += page_text + "\n"
+
+            print(f"✓ OCR extraction complete: {len(text)} characters")
+            return text.strip()
+        except Exception as e:
+            raise RuntimeError(f"Error extracting text with OCR: {str(e)}")
+
     def extract_text(self, pdf_path: str) -> str:
         """
-        Extract text content from PDF.
+        Extract text content from PDF with multi-strategy fallback.
+
+        Strategy:
+        1. Try native text extraction (PyPDF2) - fast, free
+        2. If minimal text (<50 chars), try OCR (Tesseract) - medium speed
+        3. Return best result with warnings
 
         Args:
             pdf_path: Path to the PDF file
 
         Returns:
-            Extracted text content
+            Tuple of (extracted text, strategy used)
         """
         try:
+            # Strategy 1: Native extraction (fast, free)
             with open(pdf_path, "rb") as file:
                 pdf_reader = PyPDF2.PdfReader(file)
                 text = ""
@@ -43,7 +87,38 @@ class PDFParser:
                     page = pdf_reader.pages[page_num]
                     text += page.extract_text() + "\n"
 
-                return text.strip()
+                text = text.strip()
+
+            # Check if we got sufficient text
+            if len(text) > 50:
+                print(f"✓ Native extraction successful: {len(text)} characters")
+                return text
+
+            # Strategy 2: OCR fallback (medium speed, low cost)
+            print(
+                f"⚠️  Native extraction returned minimal text ({len(text)} chars), trying OCR..."
+            )
+
+            if TESSERACT_AVAILABLE:
+                try:
+                    ocr_text = self.extract_text_with_ocr(pdf_path)
+                    if len(ocr_text) > 50:
+                        return ocr_text
+                    else:
+                        print(
+                            f"⚠️  OCR also returned minimal text ({len(ocr_text)} chars)"
+                        )
+                        # Return the better result
+                        return ocr_text if len(ocr_text) > len(text) else text
+                except Exception as ocr_error:
+                    print(f"⚠️  OCR extraction failed: {ocr_error}, using native text")
+                    return text
+            else:
+                print(
+                    "⚠️  OCR not available (pytesseract not installed), using native text"
+                )
+                return text
+
         except Exception as e:
             raise RuntimeError(f"Error extracting text from PDF: {str(e)}")
 

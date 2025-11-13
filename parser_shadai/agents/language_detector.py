@@ -2,9 +2,12 @@
 Language detection utilities for document processing.
 """
 
+import logging
 import re
 
 from parser_shadai.agents.language_config import get_supported_languages
+
+logger = logging.getLogger(__name__)
 
 
 class LanguageDetector:
@@ -47,20 +50,34 @@ class LanguageDetector:
             response = llm_provider.generate_text(
                 prompt, temperature=0.1, max_tokens=10
             )
+
+            # CRITICAL FIX: Handle None responses from LLM
+            if not response or not response.content:
+                logger.warning(
+                    "LLM returned empty response for language detection, falling back to 'multilingual'"
+                )
+                return "multilingual", {}
+
             detected_lang = response.content.strip().lower()
+
             # Validate the detected language
-            if detected_lang in get_supported_languages():
+            if detected_lang and detected_lang in get_supported_languages():
                 return detected_lang, response.usage
             else:
-                # If unsupported language detected, raise an error instead of fallback
-                raise ValueError(
-                    f"Detected language '{detected_lang}' is not supported. Supported languages: {get_supported_languages()}"
+                # If unsupported or empty language, fallback to multilingual
+                logger.warning(
+                    "Invalid or unsupported language detected: '%s', falling back to 'multilingual'",
+                    detected_lang,
                 )
+                return "multilingual", response.usage if response else {}
 
         except Exception as e:
-            print(f"Error: Language detection failed: {e}")
-            # Instead of falling back to English, raise the error
-            raise RuntimeError(f"Language detection is required but failed: {e}")
+            logger.exception(
+                "Language detection failed with exception, falling back to 'multilingual': %s",
+                str(e),
+            )
+            # CRITICAL FIX: Fallback to multilingual instead of crashing
+            return "multilingual", {}
 
     @classmethod
     def get_language_confidence(cls, text: str, language: str) -> float:

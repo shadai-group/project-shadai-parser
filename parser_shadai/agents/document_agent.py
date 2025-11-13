@@ -46,9 +46,9 @@ class ProcessingConfig:
     extract_images: bool = False  # Disabled for speed (was True)
     max_pages: Optional[int] = None
     temperature: float = 0.2  # Lower for more consistent metadata extraction (was 0.3)
-    language: str = "en"  # Default if auto-detection disabled (was None)
+    language: str = "multilingual"  # Default language (production-safe)
     auto_detect_language: bool = (
-        True  # ENABLED: Auto-detect document language (with caching)
+        False  # DISABLED by default for production reliability (was True)
     )
     # Phase 2 optimization: document-level metadata + async batch processing
     use_optimized_extraction: bool = True  # Enable Phase 2 optimizations
@@ -127,10 +127,17 @@ class DocumentAgent:
                     return None  # No LLM usage for cache hit
 
             # Detect with LLM if not cached
-            self.language_detector = LanguageDetector()
-            self.language, usage = self.language_detector.detect_language_with_llm(
-                text, self.llm_provider
-            )
+            try:
+                self.language_detector = LanguageDetector()
+                self.language, usage = self.language_detector.detect_language_with_llm(
+                    text, self.llm_provider
+                )
+                print(f"✓ Detected language: {self.language}")
+            except Exception as e:
+                # CRITICAL FIX: Fallback to multilingual if detection fails
+                print(f"Warning: Language detection failed: {e}, using multilingual")
+                self.language = "multilingual"
+                usage = {}
 
             # Force the detected language to be used
             self.config.language = self.language

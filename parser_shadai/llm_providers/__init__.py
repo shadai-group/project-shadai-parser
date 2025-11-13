@@ -7,6 +7,7 @@ from .gemini import GeminiProvider
 from .anthropic import AnthropicProvider
 from .openai import OpenAIProvider
 from .azure import AzureOpenAIProvider
+from .bedrock import BedrockProvider
 
 __all__ = [
     "BaseLLMProvider",
@@ -14,4 +15,5 @@ __all__ = [
     "AnthropicProvider",
     "OpenAIProvider",
     "AzureOpenAIProvider",
+    "BedrockProvider",
 ]

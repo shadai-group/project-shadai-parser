@@ -14,6 +14,7 @@ from typing import Any, Union
 from parser_shadai import (
     AnthropicProvider,
     AzureOpenAIProvider,
+    BedrockProvider,
     GeminiProvider,
     OpenAIProvider,
 )
@@ -212,24 +213,31 @@ class ProviderFactory(IProviderFactory):
 
     def _create_bedrock_provider(
         self, credentials: Union[AWSCredentials, Any], **kwargs: Any
-    ) -> BaseLLMProvider:
+    ) -> BedrockProvider:
         """
-        Create Bedrock provider instance (placeholder).
+        Create Bedrock provider instance.
 
         Args:
-            credentials: AWS credentials object
-            **kwargs: Additional configuration
+            credentials: AWS credentials object with access_key, secret_key, and region
+            **kwargs: Additional configuration (model, etc.)
 
         Returns:
             Bedrock provider instance
 
         Raises:
-            NotImplementedError: Bedrock provider not yet implemented
+            ValueError: If credentials are not AWSCredentials
         """
-        # TODO: Implement Bedrock provider
-        raise NotImplementedError(
-            "Bedrock provider is not yet implemented. "
-            "Please use Gemini, Anthropic, or OpenAI providers."
+        if not isinstance(credentials, AWSCredentials):
+            raise ValueError(
+                f"Expected AWSCredentials for Bedrock provider, "
+                f"got {type(credentials).__name__}"
+            )
+
+        return BedrockProvider(
+            access_key=credentials.access_key,
+            secret_key=credentials.secret_key,
+            region=credentials.region,
+            **kwargs,
         )
 
     @classmethod

@@ -138,7 +138,7 @@ class BaseLLMProvider(ABC):
             try:
                 base64.b64decode(image)
                 return image
-            except:
+            except Exception:
                 # Assume it's a file path
                 with open(image, "rb") as f:
                     return base64.b64encode(f.read()).decode("utf-8")

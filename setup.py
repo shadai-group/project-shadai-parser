@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="parser-shadai",
-    version="0.1.7",
+    version="0.2.0",
     author="Shadai",
     author_email="angie@shadai.ai",
     description="A Python package for parsing PDFs and images using various LLM providers",
@@ -32,9 +32,14 @@ setup(
         "openai>=1.109.1",
         "PyPDF2>=3.0.1",
         "pdf2image>=1.17.0",
+        "pytesseract>=0.3.10",  # OCR fallback for scanned PDFs
         "Pillow>=11.3.0",
         "python-dotenv>=1.1.1",
         "requests>=2.32.5",
+        "load-dotenv==0.1.0",
+        "boto3>=1.40.70",
+        "spacy>=3.8.8",
+        "pdfplumber>=0.11.8",
     ],
     extras_require={
         "dev": [

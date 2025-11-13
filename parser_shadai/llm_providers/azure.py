@@ -124,7 +124,7 @@ class AzureOpenAIProvider(BaseLLMProvider):
                                 "image_url": {"url": f"data:image/png;base64,{img}"},
                             }
                         )
-                    except:
+                    except Exception:
                         # It's a file path
                         with open(img, "rb") as f:
                             img_data = f.read()
@@ -211,7 +211,7 @@ class AzureOpenAIProvider(BaseLLMProvider):
                     with open(doc, "r", encoding="utf-8") as f:
                         content = f.read()
                         document_content.append(f"Document: {doc}\n{content}")
-                except:
+                except Exception:
                     # Assume it's already content
                     document_content.append(f"Document content:\n{doc}")
 

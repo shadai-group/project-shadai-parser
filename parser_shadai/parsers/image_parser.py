@@ -135,7 +135,7 @@ class ImageParser:
                     # It's base64, convert to PIL Image
                     img_data = base64.b64decode(image)
                     pil_img = Image.open(io.BytesIO(img_data))
-                except:
+                except Exception:
                     # It's a file path
                     pil_img = self.load_image(image)
             elif isinstance(image, Image.Image):
@@ -177,7 +177,7 @@ class ImageParser:
                         # It's base64, convert to PIL Image
                         img_data = base64.b64decode(img)
                         pil_img = Image.open(io.BytesIO(img_data))
-                    except:
+                    except Exception:
                         # It's a file path
                         pil_img = self.load_image(img)
                 elif isinstance(img, Image.Image):
@@ -295,7 +295,7 @@ class ImageParser:
                     # It's base64, convert to PIL Image
                     img_data = base64.b64decode(image)
                     pil_img = Image.open(io.BytesIO(img_data))
-                except:
+                except Exception:
                     # It's a file path
                     pil_img = self.load_image(image)
             elif isinstance(image, Image.Image):
